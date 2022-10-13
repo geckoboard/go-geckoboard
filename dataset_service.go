@@ -24,6 +24,7 @@ type TimeUnit string
 
 const (
 	NumberType   FieldType = "number"
+	DateType     FieldType = "date"
 	DatetimeType FieldType = "datetime"
 	StringType   FieldType = "string"
 	PercentType  FieldType = "percentage"
