@@ -180,6 +180,7 @@ func TestDatasetService_AppendData(t *testing.T) {
 		}
 
 		server := buildMockServer(func(w http.ResponseWriter, r *http.Request) {
+			assert.Equal(t, r.Method, http.MethodPost)
 			assert.Equal(t, r.Header.Get("Content-Type"), "application/json")
 			assert.Equal(t, r.Header.Get("Authorization"), "Basic a2V5LTQ0NDo=")
 			requests += 1
@@ -268,6 +269,97 @@ func TestDatasetService_AppendData(t *testing.T) {
 		ds.maxRecordsPerReq = 1
 
 		err := ds.AppendData(ctx, &Dataset{Name: "test-dataset"}, Data{{}, {}})
+		assert.ErrorContains(t, err, "invalid control character in URL")
+	})
+}
+
+func TestDatasetService_ReplaceData(t *testing.T) {
+	t.Run("makes a single data request of the first max records per request", func(t *testing.T) {
+		var requests int
+
+		dataIn := Data{
+			{"id": "123", "title": "My title 1", "created_at": "2022-05-10T11:12:13Z"},
+			{"id": "345", "title": "My title 2", "created_at": "2022-05-10T11:12:13Z"},
+			{"id": "567", "title": "My title 3", "created_at": "2022-05-10T11:12:13Z"},
+			{"id": "789", "title": "My title 4", "created_at": "2022-05-10T11:12:13Z"},
+		}
+
+		server := buildMockServer(func(w http.ResponseWriter, r *http.Request) {
+			assert.Equal(t, r.Method, http.MethodPut)
+			assert.Equal(t, r.Header.Get("Content-Type"), "application/json")
+			assert.Equal(t, r.Header.Get("Authorization"), "Basic a2V5LTQ0NDo=")
+			requests += 1
+
+			got := &DataPayload{}
+			if err := json.NewDecoder(r.Body).Decode(got); err != nil {
+				t.Fatal(err)
+			}
+
+			assert.DeepEqual(t, got, &DataPayload{Data: dataIn[0:3]})
+			w.WriteHeader(http.StatusNoContent)
+		})
+		defer server.Close()
+
+		ds := newService(server.URL)
+		ds.maxRecordsPerReq = 3
+
+		err := ds.ReplaceData(context.Background(), &Dataset{Name: "test-dataset"}, dataIn)
+		assert.NilError(t, err)
+		assert.Equal(t, requests, 1)
+	})
+
+	t.Run("fetches only the maximum number of slice items possible", func(t *testing.T) {
+		dataIn := Data{
+			{"id": "123", "title": "My title 1", "created_at": "2022-05-10T11:12:13Z"},
+			{"id": "345", "title": "My title 2", "created_at": "2022-05-10T11:12:13Z"},
+			{"id": "567", "title": "My title 3", "created_at": "2022-05-10T11:12:13Z"},
+			{"id": "789", "title": "My title 4", "created_at": "2022-05-10T11:12:13Z"},
+		}
+
+		server := buildMockServer(func(w http.ResponseWriter, r *http.Request) {
+			got := &DataPayload{}
+			if err := json.NewDecoder(r.Body).Decode(got); err != nil {
+				t.Fatal(err)
+			}
+
+			assert.DeepEqual(t, got, &DataPayload{Data: dataIn})
+			w.WriteHeader(http.StatusNoContent)
+		})
+		defer server.Close()
+
+		ds := newService(server.URL)
+		ds.maxRecordsPerReq = 10
+
+		// This could panic if we tried to do data[0:10] so it should select [0:4] as that
+		// is the maximum number of records
+		err := ds.ReplaceData(context.Background(), &Dataset{Name: "test-dataset"}, dataIn)
+		assert.NilError(t, err)
+	})
+
+	t.Run("returns error when request body marshal fails", func(t *testing.T) {
+		server := buildMockServer(func(w http.ResponseWriter, r *http.Request) {})
+		defer server.Close()
+
+		ds := newService(server.URL)
+		ds.jsonMarshalFn = func(interface{}) ([]byte, error) {
+			return nil, errors.New("marshal error")
+		}
+		ds.maxRecordsPerReq = 2
+
+		ctx := context.Background()
+		err := ds.ReplaceData(ctx, &Dataset{Name: "test-dataset"}, Data{{}})
+		assert.ErrorContains(t, err, "marshal error")
+	})
+
+	t.Run("returns error when building the request fails", func(t *testing.T) {
+		server := buildMockServer(func(w http.ResponseWriter, r *http.Request) {})
+		defer server.Close()
+
+		ctx := context.Background()
+		ds := newService(string([]byte{0x7f}))
+		ds.maxRecordsPerReq = 1
+
+		err := ds.ReplaceData(ctx, &Dataset{Name: "test-dataset"}, Data{{}, {}})
 		assert.ErrorContains(t, err, "invalid control character in URL")
 	})
 }

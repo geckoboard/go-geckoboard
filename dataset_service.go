@@ -4,12 +4,14 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"math"
 	"net/http"
 )
 
 type DatasetService interface {
 	FindOrCreate(context.Context, *Dataset) error
 	AppendData(context.Context, *Dataset, Data) error
+	ReplaceData(context.Context, *Dataset, Data) error
 }
 
 type datasetService struct {
@@ -86,6 +88,19 @@ func (d *datasetService) FindOrCreate(ctx context.Context, dataset *Dataset) err
 	return d.client.doRequest(req.WithContext(ctx))
 }
 
+// ReplaceData replaces the existing data in the dataset, as we are limited to 500 records
+// per API request - this means we can only support 500 records when replacing data
+func (d *datasetService) ReplaceData(ctx context.Context, dataset *Dataset, data Data) error {
+	maxRange := math.Min(float64(len(data)), float64(d.maxRecordsPerReq))
+	payload := DataPayload{Data: data[0:int(maxRange)]}
+
+	if err := d.sendData(ctx, http.MethodPut, dataset, payload); err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func (d *datasetService) AppendData(ctx context.Context, dataset *Dataset, data Data) error {
 	grps := len(data) / d.maxRecordsPerReq
 	var payload DataPayload
@@ -96,13 +111,13 @@ func (d *datasetService) AppendData(ctx context.Context, dataset *Dataset, data 
 		if i == grps {
 			if batch+1 <= len(data) {
 				payload := DataPayload{Data: data[batch:]}
-				if err := d.sendData(ctx, dataset, payload); err != nil {
+				if err := d.sendData(ctx, http.MethodPost, dataset, payload); err != nil {
 					return err
 				}
 			}
 		} else {
 			payload = DataPayload{Data: data[batch : d.maxRecordsPerReq*(i+1)]}
-			if err := d.sendData(ctx, dataset, payload); err != nil {
+			if err := d.sendData(ctx, http.MethodPost, dataset, payload); err != nil {
 				return err
 			}
 		}
@@ -111,14 +126,14 @@ func (d *datasetService) AppendData(ctx context.Context, dataset *Dataset, data 
 	return nil
 }
 
-func (d *datasetService) sendData(ctx context.Context, dataset *Dataset, payload DataPayload) error {
+func (d *datasetService) sendData(ctx context.Context, method string, dataset *Dataset, payload DataPayload) error {
 	b, err := d.jsonMarshalFn(payload)
 	if err != nil {
 		return err
 	}
 
 	path := d.buildDatasetPath(dataset, true)
-	req, err := d.client.buildRequest(http.MethodPost, path, bytes.NewReader(b))
+	req, err := d.client.buildRequest(method, path, bytes.NewReader(b))
 	if err != nil {
 		return err
 	}
