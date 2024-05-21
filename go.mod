@@ -1,4 +1,4 @@
-module github.com/jnormington/geckoboard
+module github.com/geckoboard/go-geckoboard
 
 go 1.21
 
