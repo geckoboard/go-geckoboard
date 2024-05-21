@@ -1,6 +1,6 @@
 module github.com/jnormington/geckoboard
 
-go 1.18
+go 1.21
 
 require gotest.tools/v3 v3.3.0
 
