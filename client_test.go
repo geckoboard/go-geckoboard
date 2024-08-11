@@ -19,9 +19,9 @@ func TestGeckoboardClient_New(t *testing.T) {
 }
 
 func TestGeckoboardClient_NewWithURL(t *testing.T) {
-	c := NewWithURL("https://example.com", "apikey-1245")
+	c := NewWithURL("apikey-1234", "https://example.com")
 
-	assert.Equal(t, c.apiKey, "apikey-1245")
+	assert.Equal(t, c.apiKey, "apikey-1234")
 	assert.Equal(t, c.baseURL, "https://example.com")
 	assert.Assert(t, c.client != nil)
 

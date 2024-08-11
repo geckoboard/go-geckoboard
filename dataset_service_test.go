@@ -109,7 +109,7 @@ func TestDatasetService_FindOrCreate(t *testing.T) {
 
 	t.Run("returns error when marshaling body fails", func(t *testing.T) {
 		ds := &datasetService{
-			client: NewWithURL("", "key-444"),
+			client: NewWithURL("key-444", ""),
 			jsonMarshalFn: func(interface{}) ([]byte, error) {
 				return nil, errors.New("marshal error")
 			},
@@ -366,7 +366,7 @@ func TestDatasetService_ReplaceData(t *testing.T) {
 
 func newService(url string) *datasetService {
 	return &datasetService{
-		client:           NewWithURL(url, "key-444"),
+		client:           NewWithURL("key-444", url),
 		jsonMarshalFn:    json.Marshal,
 		maxRecordsPerReq: 500,
 	}

@@ -21,10 +21,10 @@ type Client struct {
 }
 
 func New(apikey string) *Client {
-	return NewWithURL("https://api.geckoboard.com", apikey)
+	return NewWithURL(apikey, "https://api.geckoboard.com")
 }
 
-func NewWithURL(baseURL, apikey string) *Client {
+func NewWithURL(apikey, baseURL string) *Client {
 	return &Client{
 		client:  &http.Client{Timeout: 30 * time.Second},
 		baseURL: baseURL,
