@@ -63,24 +63,13 @@ type DataPayload struct {
 	Data Data `json:"data"`
 }
 
-func (d *datasetService) buildDatasetPath(dataset *Dataset, isData bool) string {
-	base := fmt.Sprintf("/datasets/%s", dataset.Name)
-
-	if isData {
-		return base + "/data"
-	}
-
-	return base
-}
-
 func (d *datasetService) FindOrCreate(ctx context.Context, dataset *Dataset) error {
 	b, err := d.jsonMarshalFn(dataset)
 	if err != nil {
 		return err
 	}
 
-	path := d.buildDatasetPath(dataset, false)
-	req, err := d.client.buildRequest(http.MethodPut, path, bytes.NewReader(b))
+	req, err := d.client.buildRequest(http.MethodPut, "/datasets/"+dataset.Name, bytes.NewReader(b))
 	if err != nil {
 		return err
 	}
@@ -132,8 +121,7 @@ func (d *datasetService) sendData(ctx context.Context, method string, dataset *D
 		return err
 	}
 
-	path := d.buildDatasetPath(dataset, true)
-	req, err := d.client.buildRequest(method, path, bytes.NewReader(b))
+	req, err := d.client.buildRequest(method, fmt.Sprintf("/datasets/%s/data", dataset.Name), bytes.NewReader(b))
 	if err != nil {
 		return err
 	}
