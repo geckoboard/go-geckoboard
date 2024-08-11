@@ -17,7 +17,7 @@ type DatasetService interface {
 type datasetService struct {
 	client           *Client
 	maxRecordsPerReq int
-	jsonMarshalFn    func(interface{}) ([]byte, error)
+	jsonMarshalFn    func(any) ([]byte, error)
 }
 
 type DatasetType string
@@ -57,7 +57,7 @@ type Field struct {
 	CurrencyCode string `json:"currency_code,omitempty"`
 }
 
-type DataRow map[string]interface{}
+type DataRow map[string]any
 type Data []DataRow
 type DataPayload struct {
 	Data Data `json:"data"`

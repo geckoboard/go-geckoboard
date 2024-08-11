@@ -56,47 +56,47 @@ func TestDatasetService_FindOrCreate(t *testing.T) {
 			assert.Equal(t, r.Header.Get("Content-Type"), "application/json")
 			assert.Equal(t, r.Header.Get("Authorization"), "Basic a2V5LTQ0NDo=")
 
-			payload := map[string]interface{}{}
+			payload := map[string]any{}
 			assert.NilError(t, json.NewDecoder(r.Body).Decode(&payload))
 
 			// Validate keys omitted that shouldn't exist
-			assert.DeepEqual(t, payload, map[string]interface{}{
-				"fields": map[string]interface{}{
-					"created_at": map[string]interface{}{
+			assert.DeepEqual(t, payload, map[string]any{
+				"fields": map[string]any{
+					"created_at": map[string]any{
 						"name":     "Created at",
 						"optional": true,
 						"type":     "datetime",
 					},
-					"duration": map[string]interface{}{
+					"duration": map[string]any{
 						"name":      "Time taken",
 						"optional":  true,
 						"time_unit": "hours",
 						"type":      "money",
 					},
-					"id": map[string]interface{}{
+					"id": map[string]any{
 						"name":     "ID",
 						"optional": false,
 						"type":     "string",
 					},
-					"money": map[string]interface{}{
+					"money": map[string]any{
 						"currency_code": "USD",
 						"name":          "Money",
 						"optional":      true,
 						"type":          "money",
 					},
-					"index": map[string]interface{}{
+					"index": map[string]any{
 						"name":     "Index",
 						"optional": true,
 						"type":     "number",
 					},
-					"percent": map[string]interface{}{
+					"percent": map[string]any{
 						"name":     "Completed %",
 						"optional": false,
 						"type":     "percentage",
 					},
 				},
 				"id":        "bullhorn-test",
-				"unique_by": []interface{}{"id"},
+				"unique_by": []any{"id"},
 			})
 
 			w.WriteHeader(http.StatusOK)
@@ -110,7 +110,7 @@ func TestDatasetService_FindOrCreate(t *testing.T) {
 	t.Run("returns error when marshaling body fails", func(t *testing.T) {
 		ds := &datasetService{
 			client: NewWithURL("key-444", ""),
-			jsonMarshalFn: func(interface{}) ([]byte, error) {
+			jsonMarshalFn: func(any) ([]byte, error) {
 				return nil, errors.New("marshal error")
 			},
 		}
@@ -250,7 +250,7 @@ func TestDatasetService_AppendData(t *testing.T) {
 		defer server.Close()
 
 		ds := newService(server.URL)
-		ds.jsonMarshalFn = func(interface{}) ([]byte, error) {
+		ds.jsonMarshalFn = func(any) ([]byte, error) {
 			return nil, errors.New("marshal error")
 		}
 		ds.maxRecordsPerReq = 2
@@ -341,7 +341,7 @@ func TestDatasetService_ReplaceData(t *testing.T) {
 		defer server.Close()
 
 		ds := newService(server.URL)
-		ds.jsonMarshalFn = func(interface{}) ([]byte, error) {
+		ds.jsonMarshalFn = func(any) ([]byte, error) {
 			return nil, errors.New("marshal error")
 		}
 		ds.maxRecordsPerReq = 2
