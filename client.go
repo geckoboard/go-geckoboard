@@ -18,24 +18,26 @@ type Client struct {
 	client  *http.Client
 	baseURL string
 	apiKey  string
-
-	DatasetService DatasetService
 }
 
-func New(baseURL, apikey string) *Client {
-	c := &Client{
+func New(apikey string) *Client {
+	return NewWithURL("https://api.geckoboard.com", apikey)
+}
+
+func NewWithURL(baseURL, apikey string) *Client {
+	return &Client{
 		client:  &http.Client{Timeout: 30 * time.Second},
 		baseURL: baseURL,
 		apiKey:  apikey,
 	}
+}
 
-	c.DatasetService = &datasetService{
+func (c *Client) DatasetService() DatasetService {
+	return &datasetService{
 		client:           c,
 		maxRecordsPerReq: 500,
 		jsonMarshalFn:    json.Marshal,
 	}
-
-	return c
 }
 
 func (c *Client) buildRequest(method, path string, body io.Reader) (*http.Request, error) {
